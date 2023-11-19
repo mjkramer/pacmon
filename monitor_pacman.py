@@ -2,10 +2,13 @@
 
 from collections import defaultdict
 from dataclasses import dataclass
+import os
 from typing import Dict
 import time
 
 from construct import Container
+from influxdb_client import InfluxDBClient, Point
+from influxdb_client.client.write_api import SYNCHRONOUS
 import zmq
 
 from format import Msg, WordType # , WordType_t
@@ -53,6 +56,12 @@ class Pacmon:
 
         self.poller = zmq.Poller()
         self.poller.register(self.data_socket, zmq.POLLIN)
+
+        self.influx_org = 'lbl-neutrino'
+        self.influx_bucket = 'pacman'
+        self.influx_client = InfluxDBClient(url='http://localhost:18086',
+                                            token=os.environ['INFLUXDB_TOKEN'],
+                                            org=self.influx_org)
 
     def record_type(self, word: Container):
         # Reclassify Data words according to the LArPix packet type
@@ -108,6 +117,31 @@ class Pacmon:
         print(self.config_statuses)
         print()
 
+    def write_to_influx(self, tile_id = 0):
+        api = self.influx_client.write_api(write_options=SYNCHRONOUS)
+
+        point = Point('word_types')
+        point.tag('tile_id', tile_id)
+        for word_type, count in self.word_types.items():
+            point.field(word_type, count)
+        api.write(bucket=self.influx_bucket, org=self.influx_org, record=point)
+
+        for chan, counts in self.data_statuses.items():
+            point = Point('data_statuses')
+            point.tag('tile_id', tile_id)
+            point.tag('io_channel', chan)
+            for field, value in counts.__dict__.items():
+                point.field(field, value)
+            api.write(bucket=self.influx_bucket, org=self.influx_org, record=point)
+
+        for chan, counts in self.config_statuses.items():
+            point = Point('config_statuses')
+            point.tag('tile_id', tile_id)
+            point.tag('io_channel', chan)
+            for field, value in counts.__dict__.items():
+                point.field(field, value)
+            api.write(bucket=self.influx_bucket, org=self.influx_org, record=point)
+
     def run(self):
         last = time.time()
         while True:
@@ -120,7 +154,8 @@ class Pacmon:
                     self.record_statuses(word)
 
                 if time.time() - last > 1:
-                    self.print_stats()
+                    # self.print_stats()
+                    self.write_to_influx()
                     last = time.time()
 
 
