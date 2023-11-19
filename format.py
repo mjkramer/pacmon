@@ -45,13 +45,13 @@ error = Struct(
 )
 
 wordtype = Enum(Byte,
-    Data = b'D',
-    Trig = b'T',
-    Sync = b'S',
-    Ping = b'P',
-    Write = b'W',
-    Read = b'R',
-    Error = b'E'
+    Data = ord('D'),
+    Trig = ord('T'),
+    Sync = ord('S'),
+    Ping = ord('P'),
+    Write = ord('W'),
+    Read = ord('R'),
+    Error = ord('E')
 )
 
 word = Struct(
@@ -69,11 +69,10 @@ word = Struct(
     )
 )
 
-# FIXME: Byte doesn't seem to work right
 msgtype = Enum(Byte,
-    Data = b'D',
-    Request = b'?',
-    Reply = b'!'
+    Data = ord('D'),
+    Request = ord('?'),
+    Reply = ord('!')
 )
 
 message = Struct(
@@ -84,9 +83,24 @@ message = Struct(
     'words' / Array(this.num_words, word)
 )
 
-def test():
+def test_parse():
     import io
     stream = b'D\x00\x00\x04\xd2\x00\x00\x00D\x00\x00\x04\xf2\x00\x00\x00'
     stream = io.BytesIO(stream)
     m1 = message.parse_stream(stream)
     m2 = message.parse_stream(stream)
+    return m1, m2
+
+def test_build():
+    message.build({'type': msgtype.Data,
+                   'timestamp': 1234,
+                   'num_words': 0,
+                   'words': []})
+    w = {'type': wordtype.Data,
+         'content': {'io_channel': 3,
+                     'timestamp': 4321,
+                     'packet': 666666}}
+    message.build({'type': msgtype.Data,
+                   'timestamp': 1234,
+                   'num_words': 1,
+                   'words': [w]})
