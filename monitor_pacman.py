@@ -10,41 +10,7 @@ import zmq
 
 from format import Msg, WordType # , WordType_t
 from format import PACKET_TYPE_MAP
-from util import parity64
-
-
-def get_data_socket() -> zmq.Socket:
-    ctx = zmq.Context()
-    socket = ctx.socket(zmq.SUB)
-    socket_opts = [
-        (zmq.LINGER, 1000),
-        (zmq.RCVTIMEO, 1000*11),
-        (zmq.SNDTIMEO, 1000*11)
-    ]
-    for opt in socket_opts:
-        socket.setsockopt(*opt)
-    socket.connect('tcp://pacman32.local:5556')
-    socket.setsockopt(zmq.SUBSCRIBE, b'')
-    return socket
-
-
-def get_data_poller() -> zmq.Poller:
-    socket = get_data_socket()
-    poller = zmq.Poller()
-    poller.register(socket, zmq.POLLIN)
-    return poller
-
-
-def dump_messages(pretty=False):
-    poller = get_data_poller()
-    while True:
-        for socket, _ in poller.poll():
-            raw = socket.recv()
-            msg = Msg.parse(raw)
-            if pretty:
-                print(msg)
-            else:
-                print(raw.hex(sep=' '))
+from util import parity64, get_data_socket
 
 
 @dataclass
@@ -118,7 +84,7 @@ class Pacmon:
 
             if valid_parity:
                 data.valid_parity += 1
-            else:               # invalid parity
+            else:
                 data.invalid_parity += 1
                 if is_config:
                     config.invalid_parity += 1
@@ -159,6 +125,5 @@ class Pacmon:
 
 
 if __name__ == '__main__':
-    # dump_messages()
     pacmon = Pacmon()
     pacmon.run()
