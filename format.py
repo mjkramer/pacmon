@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 from construct import (
-    Array, Byte, Bytes, Enum, Int16ub, Int32ub, Padding, Struct, Switch, this
+    Array, Byte, Bytes, Enum, Int16ul, Int32ul, Padding, Struct, Switch, this
 )
 
 Data = Struct(
     'io_channel' / Byte,
-    'timestamp' / Int32ub,
+    'timestamp' / Int32ul,
     Padding(2),
     'packet' / Bytes(8)
 )
@@ -14,13 +14,13 @@ Data = Struct(
 Trig = Struct(
     'type' / Byte,
     Padding(2),
-    'timestamp' / Int32ub
+    'timestamp' / Int32ul
 )
 
 Sync = Struct(
     'type' / Byte,
     'clk_source' / Byte,
-    'timestamp' / Int32ub
+    'timestamp' / Int32ul
 )
 
 Ping = Struct(
@@ -29,16 +29,16 @@ Ping = Struct(
 
 Write = Struct(
     Padding(3),
-    'write1' / Int32ub,
+    'write1' / Int32ul,
     Padding(4),
-    'write2' / Int32ub
+    'write2' / Int32ul
 )
 
 Read = Struct(
     Padding(3),
-    'read1' / Int32ub,
+    'read1' / Int32ul,
     Padding(4),
-    'read2' / Int32ub
+    'read2' / Int32ul
 )
 
 Error = Struct(
@@ -79,9 +79,9 @@ MsgType = Enum(Byte,
 
 Message = Struct(
     'type' / MsgType,
-    'timestamp' / Int32ub,
+    'timestamp' / Int32ul,
     Padding(1),
-    'num_words' / Int16ub,
+    'num_words' / Int16ul,
     'words' / Array(this.num_words, Word)
 )
 
@@ -89,8 +89,8 @@ def test_parse():
     import io
     stream = b'D\x00\x00\x04\xd2\x00\x00\x00'
     stream = io.BytesIO(stream)
-    m1 = Message.parse_stream(stream)
-    m2 = Message.parse_stream(stream)
+    Message.parse_stream(stream)
+    Message.parse_stream(stream)
     bs = b'D\x00\x00\x04\xd2\x00\x00\x01D\x03\x00\x00\x04\xf2\x00\x00\x12\x23\x34\x45\x54\x43\x32\x21'
 
 def test_build():
